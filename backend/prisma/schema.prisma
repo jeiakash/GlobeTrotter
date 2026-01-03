@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  name        String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  itineraries Itinerary[]
+
+  @@map("users")
+}
+
+model Itinerary {
+  id            String           @id @default(cuid())
+  userId        String
+  name          String
+  description   String?
+  totalBudget   Float?
+  currency      String           @default("USD")
+  startDate     DateTime?
+  endDate       DateTime?
+  status        String           @default("planning") // planning, confirmed, completed
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stops         ItineraryStop[]
+  flights       FlightSegment[]
+  budgetSummary BudgetSummary?
+
+  @@map("itineraries")
+}
+
+model ItineraryStop {
+  id             String              @id @default(cuid())
+  itineraryId    String
+  cityCode       String              // IATA city code (e.g., PAR, NYC)
+  cityName       String
+  countryCode    String?
+  latitude       Float?
+  longitude      Float?
+  sequence       Int                 // Order in the itinerary (1, 2, 3...)
+  checkInDate    DateTime?
+  checkOutDate   DateTime?
+  nights         Int?
+  notes          String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  
+  itinerary      Itinerary           @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  activities     ItineraryActivity[]
+  hotels         ItineraryHotel[]
+
+  @@unique([itineraryId, sequence])
+  @@map("itinerary_stops")
+}
+
+model ItineraryActivity {
+  id                String        @id @default(cuid())
+  stopId            String
+  amadeusActivityId String        // Amadeus activity ID
+  name              String
+  shortDescription  String?
+  description       String?
+  rating            Float?
+  price             Float?
+  currency          String?
+  bookingLink       String?
+  minimumDuration   String?       // ISO 8601 duration (e.g., PT2H)
+  pictures          String[]      // Array of image URLs
+  latitude          Float?
+  longitude         Float?
+  isBooked          Boolean       @default(false)
+  bookingDate       DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  
+  stop              ItineraryStop @relation(fields: [stopId], references: [id], onDelete: Cascade)
+
+  @@map("itinerary_activities")
+}
+
+model ItineraryHotel {
+  id             String        @id @default(cuid())
+  stopId         String
+  amadeusHotelId String        // Amadeus 8-char hotel property code
+  hotelName      String
+  chainCode      String?
+  offerId        String?       // Specific offer ID from Amadeus
+  roomType       String?
+  checkInDate    DateTime
+  checkOutDate   DateTime
+  nights         Int
+  priceBase      Float?
+  priceTotal     Float
+  currency       String
+  paymentType    String?       // deposit, guarantee, etc.
+  cancellation   String?       // Cancellation policy type
+  latitude       Float?
+  longitude      Float?
+  isBooked       Boolean       @default(false)
+  bookingRef     String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  
+  stop           ItineraryStop @relation(fields: [stopId], references: [id], onDelete: Cascade)
+
+  @@map("itinerary_hotels")
+}
+
+model FlightSegment {
+  id              String    @id @default(cuid())
+  itineraryId     String
+  flightOfferId   String?   // ID from Amadeus Flight Offers
+  fromCityCode    String    // Departure IATA code
+  toCityCode      String    // Arrival IATA code
+  departureDate   DateTime?
+  arrivalDate     DateTime?
+  carrierCode     String?   // Airline code (e.g., AF, BA)
+  flightNumber    String?
+  duration        String?   // ISO 8601 duration
+  passengers      Int       @default(1)
+  priceBase       Float?
+  priceTotal      Float
+  currency        String
+  cabinClass      String?   // ECONOMY, BUSINESS, etc.
+  isBooked        Boolean   @default(false)
+  bookingRef      String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  itinerary       Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  @@map("flight_segments")
+}
+
+model BudgetSummary {
+  id              String    @id @default(cuid())
+  itineraryId     String    @unique
+  flightsCost     Float     @default(0)
+  hotelsCost      Float     @default(0)
+  activitiesCost  Float     @default(0)
+  totalCost       Float     @default(0)
+  currency        String    @default("USD")
+  lastCalculated  DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  itinerary       Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  @@map("budget_summaries")
+}
