@@ -86,6 +86,14 @@ export function Navbar() {
             >
               Public Trips
             </Link>
+            <Link
+              href="/about"
+              className={`text-sm font-medium transition-colors hover:text-primary ${
+                pathname === "/about" ? "text-primary" : "text-muted-foreground"
+              }`}
+            >
+              About
+            </Link>
             {user?.role === "ADMIN" && (
               <Link
                 href="/admin"
@@ -133,6 +141,11 @@ export function Navbar() {
                 <DropdownMenuItem asChild>
                   <Link href="/trips" className="cursor-pointer w-full">
                     My Trips
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/about" className="cursor-pointer w-full">
+                    About
                   </Link>
                 </DropdownMenuItem>
                 {user?.role === "ADMIN" && (
